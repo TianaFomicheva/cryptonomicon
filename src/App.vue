@@ -20,8 +20,7 @@
               name="wallet"
               id="wallet"
               class="block w-full pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
-              placeholder="Например DOGE"
-              @click="ticker = 123"
+              placeholder="Например DOGE"             
               @keydown.enter="add"
             />
           </div>
@@ -43,7 +42,7 @@
         </div>
       </div>
       <button
-        type="button"
+        type="button" @click="add"
         class="my-4 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
       >
         <!-- Heroicon name: solid/mail -->
@@ -65,7 +64,7 @@
     <template v-if="tickers.length>0">
           <hr class="w-full border-t border-gray-600 my-4" />
           <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
-            <div v-for="t in tickers" :key="t.name" :class="{ 'border-4' :sel==t}" @mouseover="sel=t"
+            <div v-for="t in tickers" :key="t.name" :class="{ 'border-4' :sel==t}" @click="selectTicker(t)"
               class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
             >
               <div class="px-4 py-5 sm:p-6 text-center">
@@ -103,18 +102,10 @@
         {{sel.name}} - USD
       </h3>
       <div class="flex items-end border-gray-600 border-b border-l h-64">
-        <div
-          class="bg-purple-800 border w-10 h-24"
+        <div v-for="(bar, indx) in normalizeGraph()" :key="indx" :style="{height: `${bar}%`}"
+          class="bg-purple-800 border w-10"
         ></div>
-        <div
-          class="bg-purple-800 border w-10 h-32"
-        ></div>
-        <div
-          class="bg-purple-800 border w-10 h-48"
-        ></div>
-        <div
-          class="bg-purple-800 border w-10 h-16"
-        ></div>
+
       </div>
       <button
         type="button"
@@ -156,7 +147,8 @@ export default {
       ticker: "",
       tickers: [       
       ],
-      sel: null
+      sel: null,
+      graph:[]
 
     }
   },
@@ -166,12 +158,26 @@ export default {
       this.tickers.push(newTicker)
       setInterval(async ()=>{
         const f = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${newTicker.name}&tsyms=USD&api_key=2b11aeffa3a34bd561a11da94505ea7da894741067f079001d98ae550de065a7`)
-      const data = f.json()
-      newTicker.price = data.USD
+      const data = await f.json()      
+      this.tickers.find(t=> t.name === newTicker.name).price = data.USD >1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
+     if(this.sel && this.sel.name === newTicker.name){
+        this.graph.push(data.USD)
+      }
       },3000)
+      
+      // this.ticker = ""
     },
     handleDelete(tickerToRemove){
       this.tickers = this.tickers.filter(t => t !== tickerToRemove);
+    },
+    normalizeGraph(){
+      const maxValue = Math.max(...this.graph)
+      const minValue = Math.min(...this.graph)
+      return this.graph.map(price=>5+((price - minValue)*95)/(maxValue - minValue))
+    },
+    selectTicker(ticker){
+      this.sel = ticker;
+      this.graph = [];
     }
 
   }
