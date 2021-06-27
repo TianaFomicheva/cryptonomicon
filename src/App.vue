@@ -7,12 +7,12 @@
         h-100
         opacity-0
         bg-purple-800
-        inset-0
         z-0
         flex
         items-center
         justify-center
-      "     
+      "  
+      style="display: none"   
     >
       <svg
         class="animate-spin -ml-1 mr-3 h-12 w-12 text-white"
@@ -61,14 +61,14 @@
                   rounded-md
                 "
                 placeholder="Например DOGE"
-                @keydown.enter="add"
+                @keydown.enter="add(ticker)"
                 @input="$emit('input', $event.target.value);autocomplete($event.target.value)"
               />
             </div>
             <div
               class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
             >
-              <span
+              <span 
                 v-for="item in suggession"
                 :key="item.name"
                 class="
@@ -83,16 +83,17 @@
                   text-gray-800
                   cursor-pointer
                 "
+                @click="add(item)"
               >
                 {{ item }}
               </span>
             </div>
-            <div class="text-sm text-red-600">Такой тикер уже добавлен</div>
+            <div v-if="tickerIsAdded(ticker)" class="text-sm text-red-600">Такой тикер уже добавлен</div>
           </div>
         </div>
         <button
           type="button"
-          @click="add"
+          @click="add(ticker)"
           class="
             my-4
             inline-flex
@@ -132,9 +133,26 @@
       </section>
       <template v-if="tickers.length > 0">
         <hr class="w-full border-t border-gray-600 my-4" />
+        <div>
+          <button
+            class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          @click="page>1 ? (page = page -1) : (page=page)"
+          >
+            Назад
+          </button>
+          <button v-if="hasNextPage"
+            class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            @click="page=page+1"
+          >
+            Вперед
+          </button>
+          <div>Фильтр: <input v-model="filter"/></div>
+        </div>
+        <hr class="w-full border-t border-gray-600 my-4" />
+
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
-            v-for="t in tickers"
+            v-for="t in filteredTickers()"
             :key="t.name"
             :class="{ 'border-4': sel == t }"
             @click="selectTicker(t)"
@@ -243,11 +261,41 @@ export default {
       tickers: [],
       sel: null,
       graph: [],
-    suggession:[],    
+    suggession:[],
+    page:1,
+    filter:"",
+    hasNextPage: null,    
     };
+  },
+  created(){
+    const windowData = Object.fromEntries(new URL(window.location).searchParams.entries())
+    if(windowData.filter){
+      this.filter = windowData.filter
+    }
+    if(windowData.page){
+      this.page = windowData.page
+    }
+    const tickersData =  localStorage.getItem("cryptonomicon-list")
+    if(tickersData){
+      this.tickers = JSON.parse(tickersData)
+      this.tickers.map(ticker=>this.updatePrices(ticker.name))
+    }
+
+
   },
   mounted(){},
   methods: {
+    filteredTickers(){
+      const start = (this.page - 1)*6
+      const end = this.page*6
+      const filteredItems = this.tickers.filter(ticker=>ticker.name.includes(this.filter))
+      this.hasNextPage = filteredItems.length > end
+      console.log(end)
+      return filteredItems.slice(start,end)
+    },
+    tickerIsAdded(ticker){
+      return this.tickers.includes(ticker)
+    },
     autocomplete() {
        setTimeout(async () => {
         const f = await fetch(
@@ -255,7 +303,7 @@ export default {
         );
         const data = await f.json();
         const info = await data.Data
-        // console.log(info)
+
  const suggessions = await Object.values(info).filter((t) => t.Symbol.includes(this.ticker)).slice(0,4);
 
  await suggessions.map(t=>{if(this.suggession.length < suggessions.length){ this.suggession.push(t.Symbol)}})
@@ -264,22 +312,29 @@ export default {
       }, 3000);
 
     },
-    add() {
-      const newTicker = { name: this.ticker, price: "-" };
-      this.tickers.push(newTicker);
+    updatePrices(tickerName){
       setInterval(async () => {
         const f = await fetch(
-          `https://min-api.cryptocompare.com/data/price?fsym=${newTicker.name}&tsyms=USD&api_key=2b11aeffa3a34bd561a11da94505ea7da894741067f079001d98ae550de065a7`
+          `https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=USD&api_key=2b11aeffa3a34bd561a11da94505ea7da894741067f079001d98ae550de065a7`
         );
         const data = await f.json();
-        this.tickers.find((t) => t.name === newTicker.name).price =
-          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
-        if (this.sel && this.sel.name === newTicker.name) {
+        this.tickers.find((t) => t.name === tickerName).price =
+          data.USD > 1 ? data.USD && data.USD.toFixed(2) : data.USD && data.USD.toPrecision(2);
+        if (this.sel && this.sel.name === tickerName) {
           this.graph.push(data.USD);
         }
+        // this.ticker = ""
       }, 3000);
 
-      // this.ticker = ""
+    },
+
+    add(tickerName) {
+      this.filter = ""
+      const newTicker =  { name: tickerName, price: "-" } ;
+      this.tickers.push(newTicker);
+      localStorage.setItem("cryptonomicon-list", JSON.stringify(this.tickers))
+      this.updatePrices(newTicker.name)
+      
     },
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter((t) => t !== tickerToRemove);
@@ -296,12 +351,16 @@ export default {
       this.graph = [];
     },
   },
+  watch:{
+    filter(){
+      this.page = 1;
+      window.history.pushState(null, document.title, `${window.location.pathname}?filter=${this.filter}&page=${this.page}`)
+    },
+    page(){      
+      window.history.pushState(null, document.title, `${window.location.pathname}?filter=${this.filter}&page=${this.page}`)
+    }
+  }
 };
 </script>
 
-<style>
-.bg-purple-800 {
-  top: unset;
-  bottom: 0;
-}
-</style>
+
