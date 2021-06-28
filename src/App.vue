@@ -152,7 +152,7 @@
 
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
-            v-for="t in filteredTickers()"
+            v-for="t in paginatedTickers"
             :key="t.name"
             :class="{ 'border-4': sel == t }"
             @click="selectTicker(t)"
@@ -263,8 +263,7 @@ export default {
       graph: [],
     suggession:[],
     page:1,
-    filter:"",
-    hasNextPage: null,    
+    filter:"",   
     };
   },
   created(){
@@ -284,15 +283,25 @@ export default {
 
   },
   mounted(){},
-  methods: {
-    filteredTickers(){
-      const start = (this.page - 1)*6
-      const end = this.page*6
-      const filteredItems = this.tickers.filter(ticker=>ticker.name.includes(this.filter))
-      this.hasNextPage = filteredItems.length > end
-      console.log(end)
-      return filteredItems.slice(start,end)
+  computed:{
+    startIndex(){
+      return (this.page - 1)*6
     },
+    endIndex(){
+      return this.page*6
+    },
+filteredTickers(){          
+      return this.tickers.filter(ticker=>ticker.name.includes(this.filter))  
+    },
+    paginatedTickers(){
+return this.filteredTickers.slice(this.startIndex,this.endIndex)
+    },
+    hasNextPage(){
+      return this.filteredTickers.length >this.endIndex
+    }
+  },
+  methods: {
+    
     tickerIsAdded(ticker){
       return this.tickers.includes(ticker)
     },
