@@ -299,7 +299,7 @@
 </template>
 
 <script>
-import {loadTicker} from './api.js'
+import {loadTicker, subscribeToTicker} from './api.js'
  export default {
   name: "App",
   data() {
@@ -326,11 +326,15 @@ import {loadTicker} from './api.js'
     const tickersData = localStorage.getItem("cryptonomicon-list");
     if (tickersData) {
       this.tickers = JSON.parse(tickersData);
+      this.tickers.forEach(ticker=>{
+      subscribeToTicker(ticker.name,  newPrice=>{this.updateTicker(ticker.name, newPrice)})
+      })
      setInterval(this.updateTickers, 5000);
     }
   },
   mounted() {},
   computed: {
+   
     startIndex() {
       return (this.page - 1) * 6;
     },
@@ -364,6 +368,9 @@ import {loadTicker} from './api.js'
     },
   },
   methods: {
+     updateTicker(tickerName, price){
+     this.tickers.filter(t=>t.name === tickerName).forEach(t=>t.price = price)
+    },
     tickerIsAdded(ticker) {
       return this.tickers.includes(ticker);
     },
@@ -387,19 +394,24 @@ import {loadTicker} from './api.js'
         });
       }, 3000);
     },
+    formatPrice(price){
+      return parseInt(price) >= 1 ? price.toFixed(2) : price.toPrecision(2)
+      // return  price.toFixed(2)
+    },
     async updateTickers() {
       if(!this.tickers.length){
         return;
       }     
        const data = await loadTicker(this.tickers.map(t=>t.name))         
-          this.tickers.forEach(ticker=>{            
+        await  this.tickers.forEach(ticker=>{            
             const price = data[ticker.name.toUpperCase()]  
             if(!price){
               ticker.price = '-'
               return
             } 
-
-            ticker.price = 1/price>1 ? 1/price.toFixed(2) : 1/price.toPrecosion(2)
+            
+         
+            ticker.price = this.formatPrice(price)
           })                           
      
     },
@@ -408,8 +420,8 @@ import {loadTicker} from './api.js'
       this.filter = "";
       const newTicker = { name: tickerName, price: "-" };
       this.tickers = [...this.tickers, newTicker];
-      
-      // this.updatePrices(newTicker.name);
+      subscribeToTicker(tickerName, ()=>{})
+      this.filter = ''
     },
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter((t) => t !== tickerToRemove);
