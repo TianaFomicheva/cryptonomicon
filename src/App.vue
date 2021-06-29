@@ -299,7 +299,7 @@
 </template>
 
 <script>
-import {loadTicker, subscribeToTicker} from './api.js'
+import {loadTicker, subscribeToTicker, unSubscribeFromTicker} from './api.js'
  export default {
   name: "App",
   data() {
@@ -369,7 +369,8 @@ import {loadTicker, subscribeToTicker} from './api.js'
   },
   methods: {
      updateTicker(tickerName, price){
-     this.tickers.filter(t=>t.name === tickerName).forEach(t=>t.price = price)
+       this.tickers.filter(t=>t.name === tickerName).forEach(t=>console.log(t.name, price>1))
+     this.tickers.filter(t=>t.name === tickerName).forEach(t=>{return t.price = this.formatPrice(parseFloat(price))})
     },
     tickerIsAdded(ticker) {
       return this.tickers.includes(ticker);
@@ -396,7 +397,6 @@ import {loadTicker, subscribeToTicker} from './api.js'
     },
     formatPrice(price){
       return parseInt(price) >= 1 ? price.toFixed(2) : price.toPrecision(2)
-      // return  price.toFixed(2)
     },
     async updateTickers() {
       if(!this.tickers.length){
@@ -426,8 +426,9 @@ import {loadTicker, subscribeToTicker} from './api.js'
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter((t) => t !== tickerToRemove);
       if(this.selectedTicker === tickerToRemove){
-        this.selectedTicker = null;
+        this.selectedTicker = null;       
       }
+       unSubscribeFromTicker(tickerToRemove.name)
     },
 
     selectTicker(ticker) {

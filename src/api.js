@@ -6,7 +6,7 @@ export const loadTicker = (tickers)=>{
  const data = fetch(
         `https://min-api.cryptocompare.com/data/price?fsym=USD&tsyms=${tickers.join(',')}&api_key=${API_KEY}`
       ).then((r)=>r.json()).then(rawData=>{
-        const res = Object.fromEntries(Object.entries(rawData).map(([key, val]) => [key, 1/val]))
+        const res = Object.fromEntries(Object.entries(rawData).map(([key, val]) => [key, Number((1/val).toString().split('e')[0])]))
         Object.entries(res).forEach(([currency, newPrice])=>{
           const handlers = tickersHandler.get(currency) ?? [];
           if(handlers.length>0){
