@@ -299,7 +299,7 @@
 </template>
 
 <script>
-import {loadTicker, subscribeToTicker} from './api.js'
+import { subscribeToTicker, unSubscribeFromTicker} from './api.js'
  export default {
   name: "App",
   data() {
@@ -329,7 +329,7 @@ import {loadTicker, subscribeToTicker} from './api.js'
       this.tickers.forEach(ticker=>{
       subscribeToTicker(ticker.name,  newPrice=>{this.updateTicker(ticker.name, newPrice)})
       })
-     setInterval(this.updateTickers, 5000);
+    //  setInterval(this.updateTickers, 5000);
     }
   },
   mounted() {},
@@ -369,7 +369,8 @@ import {loadTicker, subscribeToTicker} from './api.js'
   },
   methods: {
      updateTicker(tickerName, price){
-     this.tickers.filter(t=>t.name === tickerName).forEach(t=>t.price = price)
+       
+    return  this.tickers.filter(t=>t.name === tickerName).forEach(t=>{return t.price = this.formatPrice(parseFloat(price))})
     },
     tickerIsAdded(ticker) {
       return this.tickers.includes(ticker);
@@ -398,29 +399,32 @@ import {loadTicker, subscribeToTicker} from './api.js'
       return parseInt(price) >= 1 ? price.toFixed(2) : price.toPrecision(2)
       // return  price.toFixed(2)
     },
-    async updateTickers() {
-      if(!this.tickers.length){
-        return;
-      }     
-       const data = await loadTicker(this.tickers.map(t=>t.name))         
-        await  this.tickers.forEach(ticker=>{            
-            const price = data[ticker.name.toUpperCase()]  
-            if(!price){
-              ticker.price = '-'
-              return
-            } 
+    //  updateTickers() {
+    //   if(!this.tickers.length){
+    //     return;
+    //   }     
+    //    const data = await loadTicker(this.tickers.map(t=>t.name))         
+    //     await  this.tickers.forEach(ticker=>{            
+    //         const price = data[ticker.name.toUpperCase()]  
+    //         if(!price){
+    //           ticker.price = '-'
+    //           return
+    //         } 
             
          
-            ticker.price = this.formatPrice(price)
-          })                           
+    //         ticker.price = this.formatPrice(price)
+    //       })                           
      
-    },
+    // },
 
     add(tickerName) {
       this.filter = "";
       const newTicker = { name: tickerName, price: "-" };
       this.tickers = [...this.tickers, newTicker];
-      subscribeToTicker(tickerName, ()=>{})
+      subscribeToTicker(tickerName, ()=>{newPrice =>
+        this.updateTicker(tickerName, newPrice)
+})
+       
       this.filter = ''
     },
     handleDelete(tickerToRemove) {
@@ -428,6 +432,7 @@ import {loadTicker, subscribeToTicker} from './api.js'
       if(this.selectedTicker === tickerToRemove){
         this.selectedTicker = null;
       }
+      unSubscribeFromTicker(tickerToRemove)
     },
 
     selectTicker(ticker) {
