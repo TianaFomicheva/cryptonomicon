@@ -63,12 +63,13 @@
                 placeholder="Например DOGE"
                 @keydown.enter="add(ticker)"
                 @input="
+                suggession=[];
                   $emit('input', $event.target.value);
                   autocomplete($event.target.value);
                 "
               />
             </div>
-            <div
+            <div v-if="suggession.length>0"
               class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
             >
               <span
@@ -91,14 +92,14 @@
                 {{ item }}
               </span>
             </div>
-            <div v-if="tickerIsAdded(ticker)" class="text-sm text-red-600">
+            <div v-if="tickerAdded(ticker)" class="text-sm text-red-600">
               Такой тикер уже добавлен
             </div>
           </div>
         </div>
         <button
           type="button"
-          @click="add(ticker)"
+          @click="add(ticker);"
           class="
             my-4
             inline-flex
@@ -200,17 +201,23 @@
           <div
             v-for="t in paginatedTickers"
             :key="t.name"
-            :class="{ 'border-4': selectedTicker == t }"
+            
+             
             @click="selectTicker(t)"
             class="
-              bg-white
               overflow-hidden
               shadow
               rounded-lg
               border-purple-800 border-solid
               cursor-pointer
             "
+            :class="{ 'border-4': selectedTicker == t,
+                    'bg-grey' : t.price == '-',
+                    'bg-white' : t.price !== '-'
+
+             }"
           >
+          
             <div class="px-4 py-5 sm:p-6 text-center">
               <dt class="text-sm font-medium text-gray-500 truncate">
                 {{ t.name }} - USD
@@ -311,6 +318,7 @@ import { subscribeToTicker, unSubscribeFromTicker} from './api.js'
       suggession: [],
       page: 1,
       filter: "",
+      
     };
   },
   created() {
@@ -333,7 +341,6 @@ import { subscribeToTicker, unSubscribeFromTicker} from './api.js'
   },
   mounted() {},
   computed: {
-   
     startIndex() {
       return (this.page - 1) * 6;
     },
@@ -367,6 +374,9 @@ import { subscribeToTicker, unSubscribeFromTicker} from './api.js'
     },
   },
   methods: {
+    tickerAdded(tickerName) {
+      return tickerName !== '' && this.tickers.filter(t=> t.name === tickerName).length >0
+    },
      updateTicker(tickerName, price){
        if(price){
        price = price.toString().split('e')[0]
@@ -374,37 +384,24 @@ import { subscribeToTicker, unSubscribeFromTicker} from './api.js'
       if (t === this.selectedTicker) {
             this.graph.push(price);
           }
-
       const finalPrice = this.formatPrice(t.name, parseFloat(price) )
       if(Number(finalPrice)) return t.price = this.formatPrice(t.name, parseFloat(price))
       })
        }
     },
-    tickerIsAdded(ticker) {
-      return this.tickers.includes(ticker);
-    },
+    
     autocomplete() {
-      setTimeout(async () => {
+      // async () => {
        
-        const f = await fetch(
+          fetch(
           `https://min-api.cryptocompare.com/data/all/coinlist?summary=true&api_key=2b11aeffa3a34bd561a11da94505ea7da894741067f079001d98ae550de065a7`
-        );
-        const data = await f.json();
-        const info = await data.Data;
-
-        const suggessions = await Object.values(info)
-          .filter((t) => t.Symbol.includes(this.ticker))
-          .slice(0, 4);
-
-        await suggessions.map((t) => {
-          if (this.suggession.length < suggessions.length) {
-            this.suggession.push(t.Symbol);
-          }
-        });
-      }, 3000);
+        ).then((r)=>r.json()).then(rawData=>{Object.values(rawData.Data).filter(t=>t.Symbol.includes(this.ticker)).map(t=>{if (this.suggession.length < 4 && this.ticker.length >1) {
+          this.suggession.push(t.Symbol);
+        }
+        })});       
     },
     formatPrice(name, price){
-      console.log(name, price)
+  
       if(parseFloat(price) >0){
       return parseInt(price) >= 1 ? price.toFixed(2) : price.toPrecision(2)
       }else{
@@ -414,6 +411,9 @@ import { subscribeToTicker, unSubscribeFromTicker} from './api.js'
 
 
     add(tickerName) {
+if(this.tickers.filter(t=> t.name === tickerName).length >0){
+return
+}
       this.filter = "";
       const newTicker = { name: tickerName, price: "-" };
       this.tickers = [...this.tickers, newTicker];
@@ -422,6 +422,7 @@ import { subscribeToTicker, unSubscribeFromTicker} from './api.js'
 )
        
       this.filter = ''
+      this.ticker = ''
     },
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter((t) => t !== tickerToRemove);
