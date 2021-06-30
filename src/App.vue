@@ -86,7 +86,7 @@
                   text-gray-800
                   cursor-pointer
                 "
-                @click="add(item)"
+                @click="ticker=item;add(item)"
               >
                 {{ item }}
               </span>
@@ -328,8 +328,7 @@ import { subscribeToTicker, unSubscribeFromTicker} from './api.js'
       this.tickers = JSON.parse(tickersData);
       this.tickers.forEach(ticker=>{
       subscribeToTicker(ticker.name,  newPrice=>{this.updateTicker(ticker.name, newPrice)})
-      })
-    //  setInterval(this.updateTickers, 5000);
+      });
     }
   },
   mounted() {},
@@ -369,8 +368,17 @@ import { subscribeToTicker, unSubscribeFromTicker} from './api.js'
   },
   methods: {
      updateTicker(tickerName, price){
-       
-    return  this.tickers.filter(t=>t.name === tickerName).forEach(t=>{return t.price = this.formatPrice(parseFloat(price))})
+       if(price){
+       price = price.toString().split('e')[0]
+    return  this.tickers.filter(t=>t.name === tickerName).forEach(t=>{
+      if (t === this.selectedTicker) {
+            this.graph.push(price);
+          }
+
+      const finalPrice = this.formatPrice(t.name, parseFloat(price) )
+      if(Number(finalPrice)) return t.price = this.formatPrice(t.name, parseFloat(price))
+      })
+       }
     },
     tickerIsAdded(ticker) {
       return this.tickers.includes(ticker);
@@ -395,35 +403,23 @@ import { subscribeToTicker, unSubscribeFromTicker} from './api.js'
         });
       }, 3000);
     },
-    formatPrice(price){
+    formatPrice(name, price){
+      console.log(name, price)
+      if(parseFloat(price) >0){
       return parseInt(price) >= 1 ? price.toFixed(2) : price.toPrecision(2)
-      // return  price.toFixed(2)
+      }else{
+        return 1.23
+      }
     },
-    //  updateTickers() {
-    //   if(!this.tickers.length){
-    //     return;
-    //   }     
-    //    const data = await loadTicker(this.tickers.map(t=>t.name))         
-    //     await  this.tickers.forEach(ticker=>{            
-    //         const price = data[ticker.name.toUpperCase()]  
-    //         if(!price){
-    //           ticker.price = '-'
-    //           return
-    //         } 
-            
-         
-    //         ticker.price = this.formatPrice(price)
-    //       })                           
-     
-    // },
+
 
     add(tickerName) {
       this.filter = "";
       const newTicker = { name: tickerName, price: "-" };
       this.tickers = [...this.tickers, newTicker];
-      subscribeToTicker(tickerName, ()=>{newPrice =>
+      subscribeToTicker(tickerName, newPrice =>
         this.updateTicker(tickerName, newPrice)
-})
+)
        
       this.filter = ''
     },
