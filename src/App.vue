@@ -36,111 +36,12 @@
       </svg>
     </div>
     <div class="container">
-      <section>
-        <div class="flex">
-          <div class="max-w-xs">
-            <label for="wallet" class="block text-sm font-medium text-gray-700"
-              >Тикер</label
-            >
-            <div class="mt-1 relative rounded-md shadow-md">
-              <input
-                v-model="ticker"
-                type="text"
-                name="wallet"
-                id="wallet"
-                class="
-                  block
-                  w-full
-                  pr-10
-                  border-gray-300
-                  text-gray-900
-                  focus:outline-none
-                  focus:ring-gray-500
-                  focus:border-gray-500
-                  sm:text-sm
-                  rounded-md
-                "
-                placeholder="Например DOGE"
-                @keydown.enter="add(ticker)"
-                @input="
-                suggession=[];
-                  $emit('input', $event.target.value);
-                  autocomplete($event.target.value);
-                "
-              />
-            </div>
-            <div v-if="suggession.length>0"
-              class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
-            >
-              <span
-                v-for="item in suggession"
-                :key="item.name"
-                class="
-                  inline-flex
-                  items-center
-                  px-2
-                  m-1
-                  rounded-md
-                  text-xs
-                  font-medium
-                  bg-gray-300
-                  text-gray-800
-                  cursor-pointer
-                "
-                @click="ticker=item;add(item)"
-              >
-                {{ item }}
-              </span>
-            </div>
-            <div v-if="tickerAdded(ticker)" class="text-sm text-red-600">
-              Такой тикер уже добавлен
-            </div>
-          </div>
-        </div>
-        <button
-          type="button"
-          @click="add(ticker);"
-          class="
-            my-4
-            inline-flex
-            items-center
-            py-2
-            px-4
-            border border-transparent
-            shadow-sm
-            text-sm
-            leading-4
-            font-medium
-            rounded-full
-            text-white
-            bg-gray-600
-            hover:bg-gray-700
-            transition-colors
-            duration-300
-            focus:outline-none
-            focus:ring-2 focus:ring-offset-2 focus:ring-gray-500
-          "
-        >
-          <!-- Heroicon name: solid/mail -->
-          <svg
-            class="-ml-0.5 mr-2 h-6 w-6"
-            xmlns="http://www.w3.org/2000/svg"
-            width="30"
-            height="30"
-            viewBox="0 0 24 24"
-            fill="#ffffff"
-          >
-            <path
-              d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
-            ></path>
-          </svg>
-          Добавить
-        </button>
-      </section>
+    <add-field @add-ticker="add"/>
       <template v-if="tickers.length > 0">
         <hr class="w-full border-t border-gray-600 my-4" />
         <div>
           <button
+            v-if="page > 1"
             class="
               my-4
               mx-2
@@ -201,8 +102,6 @@
           <div
             v-for="t in paginatedTickers"
             :key="t.name"
-            
-             
             @click="selectTicker(t)"
             class="
               overflow-hidden
@@ -211,13 +110,12 @@
               border-purple-800 border-solid
               cursor-pointer
             "
-            :class="{ 'border-4': selectedTicker == t,
-                    'bg-grey' : t.price == '-',
-                    'bg-white' : t.price !== '-'
-
-             }"
+            :class="{
+              'border-4': selectedTicker == t,
+              'bg-grey': t.price == '-',
+              'bg-white': t.price !== '-',
+            }"
           >
-          
             <div class="px-4 py-5 sm:p-6 text-center">
               <dt class="text-sm font-medium text-gray-500 truncate">
                 {{ t.name }} - USD
@@ -266,10 +164,17 @@
       </template>
       <hr class="w-full border-t border-gray-600 my-4" />
       <section class="relative">
-        <h3 class="text-lg leading-6 font-medium text-gray-900 my-8" v-if="selectedTicker">
+        <h3
+          class="text-lg leading-6 font-medium text-gray-900 my-8"
+          v-if="selectedTicker"
+        >
           {{ selectedTicker.name }} - USD
         </h3>
-        <div class="flex items-end border-gray-600 border-b border-l h-64">
+        <div v-if="selectedTicker"
+         
+          ref="graph"
+          class="flex items-end border-gray-600 border-b border-l h-64"
+        >
           <div
             v-for="(bar, indx) in normalizedGraph"
             :key="indx"
@@ -306,8 +211,10 @@
 </template>
 
 <script>
-import { subscribeToTicker, unSubscribeFromTicker} from './api.js'
- export default {
+import { subscribeToTicker, unSubscribeFromTicker } from "./api.js";
+import AddField from "./components/AddField.vue";
+
+export default {
   name: "App",
   data() {
     return {
@@ -318,9 +225,13 @@ import { subscribeToTicker, unSubscribeFromTicker} from './api.js'
       suggession: [],
       page: 1,
       filter: "",
-      
+      maxGraphElements: 1,
+      graphElWidth: 38
     };
   },
+components:{
+  AddField
+},
   created() {
     const windowData = Object.fromEntries(
       new URL(window.location).searchParams.entries()
@@ -334,12 +245,20 @@ import { subscribeToTicker, unSubscribeFromTicker} from './api.js'
     const tickersData = localStorage.getItem("cryptonomicon-list");
     if (tickersData) {
       this.tickers = JSON.parse(tickersData);
-      this.tickers.forEach(ticker=>{
-      subscribeToTicker(ticker.name,  newPrice=>{this.updateTicker(ticker.name, newPrice)})
+      this.tickers.forEach((ticker) => {
+        subscribeToTicker(ticker.name, (newPrice) => {
+          this.updateTicker(ticker.name, newPrice);
+        });
       });
     }
   },
-  mounted() {},
+  mounted() {
+    window.addEventListener('resize', this.calculateMaxGraphElements)
+  },
+  beforeDestroy(){
+    window.removeEventListener('resize', this.calculateMaxGraphElements)
+  },
+  
   computed: {
     startIndex() {
       return (this.page - 1) * 6;
@@ -366,86 +285,86 @@ import { subscribeToTicker, unSubscribeFromTicker} from './api.js'
         (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
       );
     },
-    pageStateOptions(){
+    pageStateOptions() {
       return {
         filter: this.filter,
-        page: this.page
-      }
+        page: this.page,
+      };
     },
   },
   methods: {
-    tickerAdded(tickerName) {
-      return tickerName !== '' && this.tickers.filter(t=> t.name === tickerName).length >0
+    calculateMaxGraphElements(){
+      if(!this.$refs.graph){
+        return
+      }
+       this.maxGraphElements =  this.$refs.graph.clientWidth /this.graphElWidth
     },
-     updateTicker(tickerName, price){
-       if(price){
-       price = price.toString().split('e')[0]
-    return  this.tickers.filter(t=>t.name === tickerName).forEach(t=>{
-      if (t === this.selectedTicker) {
-            this.graph.push(price);
-          }
-      const finalPrice = this.formatPrice(t.name, parseFloat(price) )
-      if(Number(finalPrice)) return t.price = this.formatPrice(t.name, parseFloat(price))
-      })
-       }
-    },
-    
-    autocomplete() {
-      // async () => {
-       
-          fetch(
-          `https://min-api.cryptocompare.com/data/all/coinlist?summary=true&api_key=2b11aeffa3a34bd561a11da94505ea7da894741067f079001d98ae550de065a7`
-        ).then((r)=>r.json()).then(rawData=>{Object.values(rawData.Data).filter(t=>t.Symbol.includes(this.ticker)).map(t=>{if (this.suggession.length < 4 && this.ticker.length >1) {
-          this.suggession.push(t.Symbol);
-        }
-        })});       
-    },
-    formatPrice(name, price){
-  
-      if(parseFloat(price) >0){
-      return parseInt(price) >= 1 ? price.toFixed(2) : price.toPrecision(2)
-      }else{
-        return 1.23
+   
+    updateTicker(tickerName, price) {
+      if (price) {
+        price = price.toString().split("e")[0];
+        return this.tickers
+          .filter((t) => t.name === tickerName)
+          .forEach((t) => {
+            if (t === this.selectedTicker) {
+              this.graph.push(price);
+              while(this.graph.length > this.maxGraphElements){
+                  this.graph.shift()
+              }
+            }
+            const finalPrice = this.formatPrice(t.name, parseFloat(price));
+            if (Number(finalPrice))
+              return (t.price = this.formatPrice(t.name, parseFloat(price)));
+          });
       }
     },
 
+    
+    formatPrice(name, price) {
+      if (parseFloat(price) > 0) {
+        return parseInt(price) >= 1 ? price.toFixed(2) : price.toPrecision(2);
+      } else {
+        return;
+      }
+    },
 
     add(tickerName) {
-if(this.tickers.filter(t=> t.name === tickerName).length >0){
-return
-}
+      if (this.tickers.filter((t) => t.name === tickerName).length > 0) {
+        return;
+      }
       this.filter = "";
       const newTicker = { name: tickerName, price: "-" };
       this.tickers = [...this.tickers, newTicker];
-      subscribeToTicker(tickerName, newPrice =>
+      subscribeToTicker(tickerName, (newPrice) =>
         this.updateTicker(tickerName, newPrice)
-)
-       
-      this.filter = ''
-      this.ticker = ''
+      );
+
+      this.filter = "";
+      this.ticker = "";
     },
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter((t) => t !== tickerToRemove);
-      if(this.selectedTicker === tickerToRemove){
+      if (this.selectedTicker === tickerToRemove) {
         this.selectedTicker = null;
       }
-      unSubscribeFromTicker(tickerToRemove)
+      unSubscribeFromTicker(tickerToRemove);
     },
 
-    selectTicker(ticker) {
+     selectTicker(ticker) {
       this.selectedTicker = ticker;
-      this.graph = [];
+       this.$nextTick().then(this.calculateMaxGraphElements())
+     
     },
   },
   watch: {
-    selectedTicker(){
-      this.graph = []
+    selectedTicker() {
+      this.graph = [];
     },
-    tickers(){
-      localStorage.setItem("cryptonomicon-list", JSON.stringify(this.tickers));   
+    tickers() {
+      localStorage.setItem("cryptonomicon-list", JSON.stringify(this.tickers));
     },
     filter() {
-      this.page = 1;      
+      this.page = 1;
     },
     pageStateOptions(v) {
       window.history.pushState(

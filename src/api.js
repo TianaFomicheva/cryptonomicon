@@ -31,7 +31,17 @@ socket.addEventListener('message', (e) => {
 
     } else {
       const handlersToBTC = tickersHandlerToBTC.get(currency) ?? [];
-      const priceInBTC = parseFloat(newPrice.toString().split('e')[0])
+      const numToDelete = newPrice.toString().split('e-')[0]
+      const numToMultiply = newPrice.toString().split('e+')[0]
+      let priceInBTC 
+      if(numToDelete){
+        priceInBTC = parseFloat(newPrice.toString().split('e')[0])/Math.pow(10, newPrice.toString().split('e-')[1])
+      }
+      else if(numToMultiply){
+        priceInBTC = parseFloat(newPrice.toString().split('e')[0])*Math.pow(10, newPrice.toString().split('e-')[1])
+      }else{
+        priceInBTC = parseFloat(newPrice)
+      }
       handlersToBTC.forEach(fn => fn(priceInBTC*BTCPrice))
 
     }
