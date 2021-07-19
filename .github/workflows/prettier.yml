@@ -8,8 +8,8 @@ on:
 
 jobs:
   prettier:
+    runs-on: ubuntu-latest
     container: 
- #   runs-on: ubuntu-latest
       image: node:14.17.0-alpine
     steps: 
     - uses: actions/checkout@v2
