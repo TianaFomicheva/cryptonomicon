@@ -23,13 +23,9 @@
                   sm:text-sm
                   rounded-md
                 "
-                placeholder="Например DOGE"
+                placeholder="Например BTC"
                 @keydown.enter="add(ticker)"
-                @input="
-                  suggession = [];
-                  $emit('input', $event.target.value);
-                  autocomplete($event.target.value);
-                "
+                @input="inputEvent($event.target.value)"
               />
             </div>
             <div
@@ -59,7 +55,7 @@
                 {{ item }}
               </span>
             </div>
-            <div v-if="tickerAdded(ticker)" class="text-sm text-red-600">
+            <div v-show="tickerexist" class="text-sm text-red-600">
               Такой тикер уже добавлен
             </div>
           </div>
@@ -108,7 +104,27 @@ export default {
   components:{
     PlusIcon
   },
+  props:{
+    tickerexist: {
+      type: Boolean,
+      default: false
+    }
+  },
+  watch:{
+    ticker(){
+        if(this.ticker){
+      this.ticker = this.ticker.toUpperCase()
+        }
+    },
+  },
   methods:{
+    inputEvent(value){
+
+                  this.$emit('ticker-exist-state',false);
+                  this.suggession = [];
+                  this.$emit('input', value);
+                  this.autocomplete(value);
+    },
       add(tickerName){
           (this.$emit('add-ticker', tickerName))
           },

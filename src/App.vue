@@ -36,7 +36,7 @@
       </svg>
     </div>
     <div class="container">
-    <add-field @add-ticker="add"/>
+    <add-field @add-ticker="add" @ticker-exist-state="tickerExistState" :tickerexist="tickerExists"/>
       <template v-if="tickers.length > 0">
         <hr class="w-full border-t border-gray-600 my-4" />
         <div>
@@ -182,7 +182,7 @@
             class="bg-purple-800 border w-10"
           ></div>
         </div>
-        <button type="button" class="absolute top-0 right-0">
+        <button v-if="selectedTicker" type="button" class="absolute top-0 right-0" @click="selectedTicker=false">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -226,9 +226,11 @@ export default {
       page: 1,
       filter: "",
       maxGraphElements: 1,
-      graphElWidth: 38
+      graphElWidth: 38,
+      tickerExists: false,
     };
   },
+  
 components:{
   AddField
 },
@@ -260,6 +262,7 @@ components:{
   },
   
   computed: {
+
     startIndex() {
       return (this.page - 1) * 6;
     },
@@ -293,6 +296,9 @@ components:{
     },
   },
   methods: {
+        tickerExistState(state){
+      return this.tickerExists = state
+    },
     calculateMaxGraphElements(){
       if(!this.$refs.graph){
         return
@@ -330,6 +336,7 @@ components:{
 
     add(tickerName) {
       if (this.tickers.filter((t) => t.name === tickerName).length > 0) {
+        this.tickerExists = true
         return;
       }
       this.filter = "";
@@ -341,6 +348,7 @@ components:{
 
       this.filter = "";
       this.ticker = "";
+      this.tickerExists = false
     },
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter((t) => t !== tickerToRemove);
@@ -357,6 +365,7 @@ components:{
     },
   },
   watch: {
+    
     selectedTicker() {
       this.graph = [];
     },
