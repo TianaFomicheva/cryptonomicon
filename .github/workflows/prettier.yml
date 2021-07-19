@@ -13,5 +13,7 @@ jobs:
       image: node:14.17.0-alpine
     steps: 
     - uses: actions/checkout@v2
+    - name: install dependencies
+      run: npm install
     - name: prettier source code with eslint
       run: npm run prettier           
