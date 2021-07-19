@@ -8,16 +8,9 @@ on:
 
 jobs:
   prettier:
-    runs-on: ubuntu-latest
+ #   runs-on: ubuntu-latest
+    image: node:14.17.0-alpine
     steps: 
     - uses: actions/checkout@v2
-    - name: install NVM
-      run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
-    - name: install node.js
-      env:
-        NODE_VERSION: 14.17.0
-      run: nvm install $NODE_VERSION
-    - name: install dependencies
-      run: npm install
     - name: prettier source code with eslint
       run: npm run prettier           
