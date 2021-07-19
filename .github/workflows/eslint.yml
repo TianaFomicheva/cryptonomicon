@@ -12,7 +12,7 @@ jobs:
     steps: 
     - uses: actions/checkout@v2
     - name: install NVM
-      run: curl -o- https://githunusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
+      run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
     - name: install node.js
       env:
         NODE_VERSION: 14.17.0
