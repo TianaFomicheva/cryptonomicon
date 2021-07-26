@@ -6,13 +6,18 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "prettier": "prettier --write src/**/*.js"
+    "prettier": "prettier --write src/**/*.js",
+    "test:unit": "vue-cli-service test:unit"
   },
   "dependencies": {
     "@tailwindcss/forms": "^0.3.3",
+    "@vue/cli-plugin-unit-jest": "^4.5.13",
+    "@vue/test-utils": "^1.2.1",
+    "babel-polyfill": "^6.26.0",
     "core-js": "^3.6.5",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^3.4.0",
+    "jest": "^27.0.6",
     "vue": "^2.6.11",
     "vue-cli-plugin-tailwind": "^2.0.6"
   },
@@ -32,7 +37,8 @@
   "eslintConfig": {
     "root": true,
     "env": {
-      "node": true
+      "node": true,
+      "jest": true
     },
     "extends": [
       "plugin:vue/essential",
@@ -57,5 +63,8 @@
     "> 1%",
     "last 2 versions",
     "not dead"
-  ]
+  ],
+  "jest": {
+    "preset": "@vue/cli-plugin-unit-jest"
+  }
 }
